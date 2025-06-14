@@ -2,106 +2,48 @@
 <html lang="ko">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>BIFAN2025 SEAT FINDER</title>
   <style>
-    body {
-      font-family: 'Arial', sans-serif;
-      background: url('https://www.bifan.kr/presskit/2025/10/images/press_10_01.jpg') no-repeat center center fixed;
-      background-size: cover;
-      color: #fff;
-      padding: 50px 20px;
-      text-align: center;
-      min-height: 100vh;
-      margin: 0;
-    }
-    .overlay {
-      background: rgba(0,0,0,0.6);
-      max-width: 700px;
-      margin: auto;
-      border-radius: 15px;
-      padding: 30px;
-      box-shadow: 0 0 20px rgba(0,0,0,0.7);
-    }
-    h1 { margin-bottom: 10px; font-size: 2.2em; }
-    h3 { margin: 0 0 20px; font-weight: bold; font-size: 0.9em; color: #ff4c4c; }
-    input[type="text"] {
-      width: 100%; max-width: 400px;
-      padding: 12px; margin-top: 10px;
-      border: none; border-radius: 8px; font-size: 1em;
-    }
-    button {
-      padding: 12px 25px; margin-top: 15px;
-      background-color: #007BFF; color: white;
-      border: none; border-radius: 8px; cursor: pointer; font-size: 1em;
-    }
-    .result {
-      margin-top: 25px; font-size: 1.1em; text-align: left;
-      background-color: rgba(255,255,255,0.95);
-      color: #000; padding: 15px; border-radius: 10px;
-      max-height: 400px; overflow-y: auto;
-    }
-    .entry {
-      margin-bottom: 15px; padding: 12px; border-radius: 8px;
-      font-weight: bold; cursor: pointer;
-      background-color: #ff7094; color: white;
-    }
-    .team { margin-top: 4px; font-weight: normal; font-size: 0.9em; }
+    body { font-family: Arial, sans-serif; background: #000; color: #fff; padding: 20px; text-align: center; }
+    input, button { padding: 10px; font-size: 1em; margin-top: 10px; width: 80%; max-width: 400px; }
+    .entry { margin: 10px; padding: 12px; border-radius: 8px; background: #333; cursor: pointer; }
+    .entry:hover { background: #444; }
   </style>
 </head>
 <body>
-  <div class="overlay">
-    <img src="https://www.bifan.kr/web/images/main/main2025_header_logo_w.png" alt="BIFAN Logo" style="width:150px;margin-bottom:15px;">
-    <h1>BIFAN2025<br/>SEAT FINDER</h1>
-    <h3>* 스태프 사용 용도이므로 외부 공유 금지 바랍니다.</h3>
-    <input type="text" id="nameInput" placeholder="성함 또는 소속을 입력하세요" />
-    <br />
-    <button onclick="lookupSeat()">조회</button>
-    <div class="result" id="result"></div>
-  </div>
+  <h1>BIFAN2025 SEAT FINDER</h1>
+  <input type="text" id="query" placeholder="성함 또는 소속 입력" />
+  <br />
+  <button onclick="doSearch()">조회</button>
+  <div id="results"></div>
 
   <script>
-    const sheetUrl = 'https://docs.google.com/spreadsheets/d/1vJDO2ED45nZtkxJC9ii_hLPHYJhn2IoBQXGDoiKHZA4/gviz/tq?tqx=out:json&sheet=개막식';
+    const sheetUrl = 'https://docs.google.com/.../gviz/tq?tqx=out:json&sheet=개막식'; // 실제 URL 입력
 
-    function openSeatPopup(seatId) {
-      const popup = window.open(`full_seatmap.html?seat=${seatId}`, '_blank', 'width=800,height=600');
-      if (popup) popup.focus();
+    function doSearch() {
+      const q = document.getElementById('query').value.trim();
+      const resEl = document.getElementById('results');
+      resEl.innerHTML = '조회 중...';
+      if (!q) return resEl.textContent = '입력해 주세요.';
+      fetch(sheetUrl).then(r => r.text()).then(txt => {
+        const json = JSON.parse(txt.substr(47).slice(0,-2));
+        const html = json.table.rows.map(r => {
+          const name = r.c[20]?.v, org=r.c[21]?.v||'', title=r.c[22]?.v||'';
+          let zone=r.c[27]?.v||'', block=r.c[28]?.v, row=r.c[29]?.v, col=r.c[30]?.v;
+          if (/\d$/.test(zone)) zone += 'GATE';
+          const seat = block && row && col ? `${block}-${row}-${col}` : '';
+          if ((name && name.includes(q)) || (org && org.includes(q))) {
+            return `<div class="entry" onclick="openMap('${seat}')">${name} 님 — 좌석: ${seat}</div>`;
+          }
+          return '';
+        }).filter(s=>s).join('');
+        resEl.innerHTML = html || '등록된 정보가 없습니다.';
+      }).catch(e => resEl.textContent = '불러오기 오류');
     }
 
-    async function lookupSeat() {
-      const q = document.getElementById('nameInput').value.trim();
-      const resEl = document.getElementById('result');
-      resEl.textContent = '조회 중...';
-      if (!q) return resEl.textContent = '성함 또는 소속명을 입력해 주세요.';
-
-      try {
-        const resp = await fetch(sheetUrl);
-        const j = JSON.parse((await resp.text()).substr(47).slice(0,-2));
-        const matches = j.table.rows.map(r => {
-          const name = r.c[20]?.v;
-          const org = r.c[21]?.v || '소속없음';
-          const title = r.c[22]?.v || '직함없음';
-          let zone = r.c[27]?.v || '';
-          const block = r.c[28]?.v || '';
-          const row = r.c[29]?.v || '';
-          const col = r.c[30]?.v || '';
-          const team = r.c[16]?.v || '-';
-          const mgr = r.c[17]?.v || '-';
-          if ((name && name.includes(q)) || (org && org.includes(q))) {
-            if (/\d$/.test(zone)) zone += 'GATE';
-            const seat = (zone && block && row && col) ? `${zone} ${block}-${row}-${col}` : '좌석 정보 없음';
-            const seatId = `${block}-${row}-${col}`;
-            const is2F = zone.toLowerCase().includes('2f') && zone.toLowerCase().includes('1gate');
-            const click = is2F ? `onclick="openSeatPopup('${seatId}')"` : '';
-            return `<div class="entry" ${click}>${name} 님 (${org}, ${title})<br/>좌석: ${seat}<div class="team">초청 담당: ${team} / ${mgr}</div></div>`;
-          }
-        }).filter(Boolean);
-
-        resEl.innerHTML = matches.length ? matches.join('') : '등록되지 않은 이름 또는 소속입니다.';
-      } catch(e) {
-        console.error(e);
-        resEl.textContent = '데이터를 불러오는 중 오류가 발생했습니다.';
-      }
+    function openMap(seatId) {
+      window.open(`full_seatmap.html?seat=${seatId}`, '_blank', 'width=800,height=600');
     }
   </script>
 </body>

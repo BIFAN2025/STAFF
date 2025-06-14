@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>2F 1GATE 좌석도</title>
+  <style>
+    body {
+      font-family: Arial;
+      padding: 20px;
+      text-align: center;
+      background: #f9f9f9;
+    }
+    h2 { margin-bottom: 20px; }
+    .seat { width:36px; height:36px; display:inline-block; margin:3px; border-radius:6px; background:#ddd; text-align:center; line-height:36px; font-size:11px; }
+    .highlight { background:red !important; color:white; font-weight:bold; }
+    .seatmap-row { margin-bottom:4px; }
+  </style>
+</head>
+<body>
+  <h2>2F 1GATE 좌석도</h2>
+  <div id="seatmap">
+    <script>
+      const blocks = [..."ABCDEFGHIJKLMNOPQRSTUV"];
+      const maxCol = 25;
+      blocks.forEach(b => {
+        document.write('<div class="seatmap-row">');
+        for (let c=1; c<=maxCol; c++) {
+          const id = `${b}-${b.charCodeAt(0)-64}-${c}`;
+          document.write(`<div class="seat" id="${id}">${id}</div>`);
+        }
+        document.write('</div>');
+      });
+    </script>
+  </div>
+  <script>
+    const p = new URLSearchParams(location.search).get('seat');
+    if (p) {
+      const el = document.getElementById(p);
+      if (el) {
+        el.classList.add('highlight');
+        el.scrollIntoView({behavior:'smooth', block:'center'});
+      }
+    }
+  </script>
+</body>
+</html>

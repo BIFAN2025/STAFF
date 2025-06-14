@@ -6,6 +6,7 @@
   <title>BIFAN2025 SEAT FINDER</title>
   <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;700&display=swap" rel="stylesheet">
   <style>
+    /* 공통 스타일 */
     body {
       font-family: 'Noto Sans KR', sans-serif;
       background: url('https://www.bifan.kr/presskit/2025/10/images/press_10_01.jpg') no-repeat center center fixed;
@@ -55,12 +56,8 @@
     }
     button:hover { background-color: #2e4cbf; }
 
-    .result {
-      width: 90%; max-width: 700px;
-      text-align: left;
-      margin-bottom: 20px;
-    }
-
+    /* 검색 결과 카드 */
+    .result { width: 90%; max-width: 700px; text-align: left; margin-bottom: 20px; }
     .card {
       padding: 16px;
       margin-bottom: 12px;
@@ -88,9 +85,11 @@
       margin-bottom: 30px;
       background: #fff;
       border-radius: 12px;
-      position: relative;
     }
-    .seat-map { display: grid; gap: 4px; }
+    .seat-map {
+      display: grid;
+      gap: 4px;
+    }
     .seat-cell {
       width: 40px; height: 40px;
       border-radius: 8px;
@@ -105,21 +104,17 @@
       background-color: red !important;
       border: 2px solid #fff;
       box-shadow: 0 0 8px rgba(0,0,0,0.7);
-      color: #fff; font-size: 0.75em;
+      color: #fff;
+      font-size: 0.75em;
     }
 
-    /* 2F 1GATE */
-    #map-2F { display: none; }
+    /* 각 Gate별 설정 */
     #map-2F .seat-map { grid-template-columns: repeat(21, minmax(40px,1fr)); }
     #map-2F .seat-cell.value { background-color: #FFC0CB; color: #FFC0CB; }
 
-    /* 3F 1GATE */
-    #map-3F { display: none; }
     #map-3F .seat-map { grid-template-columns: repeat(20, minmax(40px,1fr)); }
     #map-3F .seat-cell.value { background-color: #0000FF; color: #0000FF; }
 
-    /* 4F 1GATE */
-    #map-4F { display: none; }
     #map-4F .seat-map { grid-template-columns: repeat(26, minmax(40px,1fr)); }
     #map-4F .seat-cell.value { background-color: #FFA500; color: #FFA500; }
   </style>
@@ -1638,13 +1633,13 @@
   </div>
 
   <script>
-    // ID 자동 부여
+    // ID 자동 부여: map-<Gate>-<seatNo>
     window.addEventListener('DOMContentLoaded', () => {
-      ['map-2F','map-3F','map-4F'].forEach(id => {
-        const wrapper = document.getElementById(id);
-        wrapper.querySelectorAll('.seat-cell').forEach(el => {
+      ['2F','3F','4F'].forEach(f => {
+        const mapId = `map-${f}`;
+        document.querySelectorAll(`#${mapId} .seat-cell`).forEach(el => {
           const txt = el.textContent.trim();
-          if (txt) el.id = `${id}-${txt}`;
+          if (txt) el.id = `${mapId}-${txt}`;
         });
       });
     });
@@ -1653,15 +1648,18 @@
 
     async function lookupSeat() {
       const keyword = document.getElementById('nameInput').value.trim().toLowerCase();
-      const resultEl = document.getElementById('result'); resultEl.innerHTML = '';
+      const resultEl = document.getElementById('result');
+      resultEl.innerHTML = '';
       if (!keyword) return resultEl.textContent = '이름 또는 소속을 입력해 주세요.';
       resultEl.textContent = '조회 중…';
+
       try {
         const res = await fetch(sheetUrl, { cache: 'no-store' });
         const text = await res.text();
         const json = JSON.parse(text.substring(47).slice(0, -2));
         const rows = json.table.rows;
         const matches = [];
+
         rows.forEach(row => {
           const rawName = row.c[20]?.v || '';
           const affiliation = row.c[21]?.v || '';
@@ -1675,32 +1673,39 @@
             const r = row.c[29]?.v || '';
             const c = row.c[30]?.v || '';
             const seatNo = `${block}-${r}-${c}`;
+
             let colorClass = 'gray';
             if (gate.startsWith('2F')) colorClass = 'pink';
             else if (gate.startsWith('3F')) colorClass = 'blue';
             else if (gate.startsWith('4F')) colorClass = 'orange';
+
             matches.push(`
               <div class="card ${colorClass}" data-gate="${gate}" data-seat="${seatNo}">
                 <div class="name">${rawName} <small>님</small></div>
                 <div class="info">소속: ${affiliation || '소속없음'}</div>
                 <div class="info">직함: ${title}</div>
                 <div class="seat">좌석: ${gate} ${seatNo}</div>
-                ${team||inviter?`<div class="meta">초청 담당: ${team} / ${inviter}</div>`:''}
+                ${team || inviter ? `<div class="meta">초청 담당: ${team} / ${inviter}</div>` : ''}
               </div>
             `);
           }
         });
+
         resultEl.innerHTML = matches.length ? matches.join('') : '등록되지 않은 이름 또는 소속입니다.';
+
         document.querySelectorAll('.card').forEach(card => {
           card.onclick = () => {
+            // 모든 맵 숨김
             ['map-2F','map-3F','map-4F'].forEach(id => document.getElementById(id).style.display = 'none');
-            const mapId = card.getAttribute('data-gate').startsWith('2F')
-              ? 'map-2F'
-              : card.getAttribute('data-gate').startsWith('3F')
-                ? 'map-3F'
-                : 'map-4F';
-            document.getElementById(mapId).style.display = 'block';
+            // 해당 Gate만 표시
+            const gate = card.getAttribute('data-gate');
+            const mapId = gate.startsWith('2F') ? 'map-2F' : gate.startsWith('3F') ? 'map-3F' : 'map-4F';
+            const mapWrap = document.getElementById(mapId);
+            mapWrap.style.display = 'block';
+
+            // 하이라이트 초기화
             document.querySelectorAll('.seat-cell.highlight').forEach(el => el.classList.remove('highlight'));
+            // 하이라이트 적용
             const seatNo = card.getAttribute('data-seat');
             const target = document.getElementById(`${mapId}-${seatNo}`);
             if (target) {
@@ -1714,6 +1719,7 @@
         resultEl.textContent = '조회 중 오류가 발생했습니다.';
       }
     }
+
     document.getElementById('searchBtn').addEventListener('click', lookupSeat);
     document.getElementById('nameInput').addEventListener('keypress', e => { if (e.key === 'Enter') lookupSeat(); });
   </script>

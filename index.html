@@ -36,10 +36,12 @@
       border: none; border-radius: 10px; color: #fff;
       font-size: 1em; cursor: pointer; transition: 0.3s;
       box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+      margin-right: 10px;
     }
     button:hover { background-color: #2e4cbf; }
+    .reset-btn { background-color: #888; }
+    .reset-btn:hover { background-color: #666; }
 
-    /* 검색 결과 카드 */
     .result { width: 90%; max-width: 700px; text-align: left; margin-bottom: 20px; }
     .card {
       padding: 16px; margin-bottom: 12px; border-radius: 12px;
@@ -54,33 +56,32 @@
     .orange{ background-color: #fd6b3a; }
     .gray  { background-color: #888; }
 
-    /* 좌석도 공통 */
+    /* 좌석도 공통: 사이즈 축소 */
     .seat-map-wrapper {
       width: 90%; max-width: 840px; overflow-x: auto;
       padding: 10px; box-sizing: border-box; display: none;
       margin-bottom: 30px; background: #fff; border-radius: 12px;
     }
-    .seat-map {
-      display: grid; gap: 4px;
-    }
+    .seat-map { display: grid; gap: 4px; }
     .seat-cell {
-      width: 40px; height: 40px; border-radius: 8px;
-      display: flex; align-items: center; justify-content: center;
-      font-size: 0.75em; box-sizing: border-box; color: transparent;
+      width: 30px; height: 30px; /* 사이즈 축소 */
+      border-radius: 6px; display: flex;
+      align-items: center; justify-content: center;
+      font-size: 0; /* 텍스트 숨김 */
+      box-sizing: border-box;
     }
     .seat-cell.grey { background-color: #999; }
     .seat-cell.empty{ background: transparent; }
-    .seat-cell.value{/* Gate별 색상 아래 지정 */}
+    .seat-cell.value{/* Gate별 색깔 아래 지정 */}
     .seat-cell.highlight {
-      background: red !important; border: 2px solid #fff;
-      box-shadow: 0 0 8px rgba(0,0,0,0.7); color: #fff;
-      font-size: 0.75em;
+      background-color: red !important;
+      border: 2px solid #fff;
+      box-shadow: 0 0 8px rgba(0,0,0,0.7);
     }
 
-    /* Gate별 색 지정 */
-    #map-2F .seat-cell.value { background-color: #FFC0CB; color: #FFC0CB; }
-    #map-3F .seat-cell.value { background-color: #0000FF; color: #0000FF; }
-    #map-4F .seat-cell.value { background-color: #FFA500; color: #FFA500; }
+    #map-2F .seat-cell.value { background-color: #FFC0CB; }
+    #map-3F .seat-cell.value { background-color: #0000FF; }
+    #map-4F .seat-cell.value { background-color: #FFA500; }
   </style>
 </head>
 <body>
@@ -90,11 +91,11 @@
     <h3 class="warning">* 스태프 사용 용도이므로 외부 공유 금지 바랍니다.</h3>
     <input type="text" id="nameInput" placeholder="성함 또는 소속을 입력해 주세요">
     <button id="searchBtn">조회</button>
+    <button id="resetBtn" class="reset-btn">초기화</button>
   </div>
 
   <div class="result" id="result"></div>
 
-  <!-- 2F 1GATE: 20열, 23행 -->
   <div id="map-2F" class="seat-map-wrapper" data-cols="20">
     <div class="seat-map">
       <div class="seat-cell value">A-1-1</div>
@@ -560,7 +561,6 @@
     </div>
   </div>
 
-  <!-- 3F 1GATE: 20열, 26행 -->
   <div id="map-3F" class="seat-map-wrapper" data-cols="20">
     <div class="seat-map">
       <div class="seat-cell value">L-2-15</div>
@@ -1086,7 +1086,6 @@
     </div>
   </div>
 
-  <!-- 4F 1GATE: 18열, 28행 -->
   <div id="map-4F" class="seat-map-wrapper" data-cols="18">
     <div class="seat-map">
       <div class="seat-cell value">L-1-16</div>
@@ -1597,29 +1596,24 @@
   </div>
 
   <script>
-    // 1) data-cols 읽어 그리드 열 갯수 자동 설정 + ID 부여
     window.addEventListener('DOMContentLoaded', () => {
       document.querySelectorAll('.seat-map-wrapper').forEach(wrapper => {
         const cols = parseInt(wrapper.dataset.cols, 10);
         const grid = wrapper.querySelector('.seat-map');
-        if (cols && grid) {
-          grid.style.gridTemplateColumns = `repeat(${cols}, minmax(40px,1fr))`;
-        }
-        // ID 자동 부여 (map-<Gate>-<seatNo>)
+        if (cols && grid) grid.style.gridTemplateColumns = `repeat(${cols}, minmax(30px,1fr))`;
         wrapper.querySelectorAll('.seat-cell').forEach(cell => {
           const txt = cell.textContent.trim();
           if (txt) cell.id = `${wrapper.id}-${txt}`;
         });
       });
+      document.getElementById('resetBtn').style.display = 'none';
     });
 
-    // 2) 검색 + 카드 생성 + 클릭 시 맵 표시/하이라이트
     const sheetUrl = 'https://docs.google.com/spreadsheets/d/1vJDO2ED45nZtkxJC9ii_hLPHYJhn2IoBQXGDoiKHZA4/gviz/tq?tqx=out:json&sheet=개막식';
 
     async function lookupSeat() {
       const kw = document.getElementById('nameInput').value.trim().toLowerCase();
-      const resultEl = document.getElementById('result');
-      resultEl.innerHTML = '';
+      const resultEl = document.getElementById('result'); resultEl.innerHTML = '';
       if (!kw) return resultEl.textContent = '이름 또는 소속을 입력해 주세요.';
       resultEl.textContent = '조회 중…';
 
@@ -1643,64 +1637,10 @@
             const rr    = r.c[29]?.v || '';
             const cc    = r.c[30]?.v || '';
             const seatNo= `${b}-${rr}-${cc}`;
-            let cls = 'gray';
-            if (gate.startsWith('2F')) cls = 'pink';
-            else if (gate.startsWith('3F')) cls = 'blue';
-            else if (gate.startsWith('4F')) cls = 'orange';
+            let cls='gray';
+            if (gate.startsWith('2F')) cls='pink';
+            else if (gate.startsWith('3F')) cls='blue';
+            else if (gate.startsWith('4F')) cls='orange';
 
             cards.push(`
-              <div class="card ${cls}" data-gate="${gate}" data-seat="${seatNo}">
-                <div class="name">${name} <small>님</small></div>
-                <div class="info">소속: ${aff || '소속없음'}</div>
-                <div class="info">직함: ${title}</div>
-                <div class="seat">좌석: ${gate} ${seatNo}</div>
-                ${team||inv ? `<div class="meta">초청 담당: ${team}/${inv}</div>` : ''}
-              </div>
-            `);
-          }
-        });
-
-        resultEl.innerHTML = cards.length ? cards.join('') : '등록되지 않은 이름 또는 소속입니다.';
-
-        document.querySelectorAll('.card').forEach(card => {
-          card.onclick = () => {
-            // 모든 맵 숨기기
-            ['map-2F','map-3F','map-4F'].forEach(id => {
-              document.getElementById(id).style.display = 'none';
-            });
-            // 해당 Gate 맵만 보이기
-            const gate = card.dataset.gate;
-            const mapId = gate.startsWith('2F')
-              ? 'map-2F'
-              : gate.startsWith('3F')
-                ? 'map-3F'
-                : 'map-4F';
-            document.getElementById(mapId).style.display = 'block';
-
-            // 하이라이트 초기화
-            document.querySelectorAll('.seat-cell.highlight').forEach(el => {
-              el.classList.remove('highlight');
-            });
-            // 하이라이트 적용
-            const seatNo = card.dataset.seat;
-            const target = document.getElementById(`${mapId}-${seatNo}`);
-            if (target) {
-              target.classList.add('highlight');
-              target.scrollIntoView({ behavior: 'smooth', block: 'center', inline: 'center' });
-            }
-          };
-        });
-
-      } catch (e) {
-        console.error(e);
-        resultEl.textContent = '조회 중 오류가 발생했습니다.';
-      }
-    }
-
-    document.getElementById('searchBtn').addEventListener('click', lookupSeat);
-    document.getElementById('nameInput').addEventListener('keypress', e => {
-      if (e.key === 'Enter') lookupSeat();
-    });
-  </script>
-</body>
-</html>
+              <div class="card ${cls}" data-gate="${gate}" data

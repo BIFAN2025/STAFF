@@ -44,11 +44,8 @@
     .entry {
       margin-bottom: 15px; padding: 12px; border-radius: 8px;
       font-weight: bold; cursor: pointer;
+      background-color: #ff7094; color: white;
     }
-    .pink { background-color: #ff7094; color: #fff; }
-    .blue { background-color: #436aec; color: #fff; }
-    .orange { background-color: #fd6b3a; color: #fff; }
-    .gray { background-color: #888; color: #fff; }
     .team { margin-top: 4px; font-weight: normal; font-size: 0.9em; }
   </style>
 </head>
@@ -65,6 +62,11 @@
 
   <script>
     const sheetUrl = 'https://docs.google.com/spreadsheets/d/1vJDO2ED45nZtkxJC9ii_hLPHYJhn2IoBQXGDoiKHZA4/gviz/tq?tqx=out:json&sheet=개막식';
+
+    function openSeatPopup(seatId) {
+      const popup = window.open(`full_seatmap.html?seat=${seatId}`, '_blank', 'width=800,height=600');
+      if (popup) popup.focus();
+    }
 
     async function lookupSeat() {
       const q = document.getElementById('nameInput').value.trim();
@@ -88,12 +90,10 @@
           if ((name && name.includes(q)) || (org && org.includes(q))) {
             if (/\d$/.test(zone)) zone += 'GATE';
             const seat = (zone && block && row && col) ? `${zone} ${block}-${row}-${col}` : '좌석 정보 없음';
-            let cls = 'gray', url = '';
-            const sl = seat.toLowerCase();
-            if (sl.includes('2f') && sl.includes('1gate')) { cls='pink'; url=`onclick="window.open('seatmap_nolabel.html?seat=${block}-${row}-${col}','_blank')"`; }
-            else if (sl.includes('3f') && sl.includes('1gate')) cls='blue';
-            else if (sl.includes('4f') && sl.includes('1gate')) cls='orange';
-            return `<div class="entry ${cls}" ${url}>${name} 님 (${org}, ${title})<br/>좌석: ${seat}<div class="team">초청 담당: ${team} / ${mgr}</div></div>`;
+            const seatId = `${block}-${row}-${col}`;
+            const is2F = zone.toLowerCase().includes('2f') && zone.toLowerCase().includes('1gate');
+            const click = is2F ? `onclick="openSeatPopup('${seatId}')"` : '';
+            return `<div class="entry" ${click}>${name} 님 (${org}, ${title})<br/>좌석: ${seat}<div class="team">초청 담당: ${team} / ${mgr}</div></div>`;
           }
         }).filter(Boolean);
 

@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>2F 1GATE 좌석도</title>
+  <style>
+    body {
+      font-family: Arial;
+      padding: 20px;
+      text-align: center;
+      background: #f0f0f0;
+    }
+    h2 { margin-bottom: 20px; }
+    .seat-cell {
+      width: 34px;
+      height: 34px;
+      margin: 3px;
+      display: inline-block;
+      background: #ccc;
+      border-radius: 6px;
+      font-size: 10px;
+      line-height: 34px;
+      text-align: center;
+    }
+    .highlight {
+      background-color: red !important;
+      color: white;
+      font-weight: bold;
+    }
+    .row { margin-bottom: 5px; }
+  </style>
+</head>
+<body>
+  <h2>2F 1GATE 좌석도</h2>
+  <div id="seat-container"></div>
+
+  <script>
+    const letters = 'ABCDEFGHIJKLMNOPQRSTUV'.split('');
+    const seatDiv = document.getElementById('seat-container');
+
+    letters.forEach(row => {
+      const div = document.createElement('div');
+      div.className = 'row';
+      for (let i = 1; i <= 25; i++) {
+        const id = `${row}-${letters.indexOf(row)+1}-${i}`;
+        const cell = document.createElement('div');
+        cell.className = 'seat-cell';
+        cell.id = id;
+        cell.textContent = id;
+        div.appendChild(cell);
+      }
+      seatDiv.appendChild(div);
+    });
+
+    const params = new URLSearchParams(window.location.search);
+    const seatToHighlight = params.get('seat');
+    if (seatToHighlight) {
+      const cell = document.getElementById(seatToHighlight);
+      if (cell) cell.classList.add('highlight');
+    }
+  </script>
+</body>
+</html>

@@ -23,62 +23,33 @@
       padding: 30px;
       box-shadow: 0 0 20px rgba(0,0,0,0.7);
     }
-    h1 {
-      margin-bottom: 10px;
-      font-size: 2.2em;
-    }
-    h3 {
-      margin: 0 0 20px 0;
-      font-weight: bold;
-      font-size: 0.9em;
-      color: #ff4c4c;
-    }
+    h1 { margin-bottom: 10px; font-size: 2.2em; }
+    h3 { margin: 0 0 20px; font-weight: bold; font-size: 0.9em; color: #ff4c4c; }
     input[type="text"] {
-      width: 100%;
-      max-width: 400px;
-      padding: 12px;
-      margin-top: 10px;
-      border: none;
-      border-radius: 8px;
-      font-size: 1em;
+      width: 100%; max-width: 400px;
+      padding: 12px; margin-top: 10px;
+      border: none; border-radius: 8px; font-size: 1em;
     }
     button {
-      padding: 12px 25px;
-      margin-top: 15px;
-      background-color: #007BFF;
-      color: white;
-      border: none;
-      border-radius: 8px;
-      cursor: pointer;
-      font-size: 1em;
+      padding: 12px 25px; margin-top: 15px;
+      background-color: #007BFF; color: white;
+      border: none; border-radius: 8px; cursor: pointer; font-size: 1em;
     }
     .result {
-      margin-top: 25px;
-      font-size: 1.1em;
-      text-align: left;
+      margin-top: 25px; font-size: 1.1em; text-align: left;
       background-color: rgba(255,255,255,0.95);
-      color: #000;
-      padding: 15px;
-      border-radius: 10px;
-      max-height: 400px;
-      overflow-y: auto;
+      color: #000; padding: 15px; border-radius: 10px;
+      max-height: 400px; overflow-y: auto;
     }
     .entry {
-      margin-bottom: 15px;
-      padding: 12px;
-      border-radius: 8px;
-      font-weight: bold;
-      cursor: pointer;
+      margin-bottom: 15px; padding: 12px; border-radius: 8px;
+      font-weight: bold; cursor: pointer;
     }
     .pink { background-color: #ff7094; color: #fff; }
     .blue { background-color: #436aec; color: #fff; }
     .orange { background-color: #fd6b3a; color: #fff; }
     .gray { background-color: #888; color: #fff; }
-    .team {
-      margin-top: 4px;
-      font-weight: normal;
-      font-size: 0.9em;
-    }
+    .team { margin-top: 4px; font-weight: normal; font-size: 0.9em; }
   </style>
 </head>
 <body>
@@ -96,62 +67,40 @@
     const sheetUrl = 'https://docs.google.com/spreadsheets/d/1vJDO2ED45nZtkxJC9ii_hLPHYJhn2IoBQXGDoiKHZA4/gviz/tq?tqx=out:json&sheet=개막식';
 
     async function lookupSeat() {
-      const query = document.getElementById('nameInput').value.trim();
-      const resultEl = document.getElementById('result');
-      resultEl.textContent = '조회 중...';
-
-      if (!query) {
-        resultEl.textContent = '성함 또는 소속명을 입력해 주세요.';
-        return;
-      }
+      const q = document.getElementById('nameInput').value.trim();
+      const resEl = document.getElementById('result');
+      resEl.textContent = '조회 중...';
+      if (!q) return resEl.textContent = '성함 또는 소속명을 입력해 주세요.';
 
       try {
-        const res = await fetch(sheetUrl);
-        const text = await res.text();
-        const json = JSON.parse(text.substr(47).slice(0, -2));
-        const rows = json.table.rows;
-        const matches = [];
-
-        for (let row of rows) {
-          const 성함 = row.c[20]?.v;
-          const 소속 = row.c[21]?.v || '소속없음';
-          const 직함 = row.c[22]?.v || '직함없음';
-          let 구역 = row.c[27]?.v || '';
-          const 블럭 = row.c[28]?.v || '';
-          const 행 = row.c[29]?.v || '';
-          const 열 = row.c[30]?.v || '';
-          const 초청팀 = row.c[16]?.v;
-          const 담당자 = row.c[17]?.v;
-
-          if ((성함 && 성함.includes(query)) || (소속 && 소속.includes(query))) {
-            if (/\d$/.test(구역)) 구역 += 'GATE';
-            const seat = (구역 && 블럭 && 행 && 열) ? `${구역} ${블럭}-${행}-${열}` : '좌석 정보 없음';
-            let colorClass = 'gray';
-            const seatLower = seat.toLowerCase();
-            if (seatLower.includes('2f') && seatLower.includes('1gate')) colorClass = 'pink';
-            else if (seatLower.includes('3f') && seatLower.includes('1gate')) colorClass = 'blue';
-            else if (seatLower.includes('4f') && seatLower.includes('1gate')) colorClass = 'orange';
-
-            const link = (colorClass === 'pink' && 블럭 && 행 && 열)
-              ? `onclick="window.open('seatmap_nolabel.html?seat=${블럭}-${행}-${열}', '_blank')"`
-              : '';
-
-            matches.push(`
-              <div class="entry ${colorClass}" ${link}>
-                ${성함} 님 (${소속}, ${직함})<br/>
-                좌석: ${seat}
-                <div class="team">초청 담당: ${초청팀 || '-'} / ${담당자 || '-'}</div>
-              </div>
-            `);
+        const resp = await fetch(sheetUrl);
+        const j = JSON.parse((await resp.text()).substr(47).slice(0,-2));
+        const matches = j.table.rows.map(r => {
+          const name = r.c[20]?.v;
+          const org = r.c[21]?.v || '소속없음';
+          const title = r.c[22]?.v || '직함없음';
+          let zone = r.c[27]?.v || '';
+          const block = r.c[28]?.v || '';
+          const row = r.c[29]?.v || '';
+          const col = r.c[30]?.v || '';
+          const team = r.c[16]?.v || '-';
+          const mgr = r.c[17]?.v || '-';
+          if ((name && name.includes(q)) || (org && org.includes(q))) {
+            if (/\d$/.test(zone)) zone += 'GATE';
+            const seat = (zone && block && row && col) ? `${zone} ${block}-${row}-${col}` : '좌석 정보 없음';
+            let cls = 'gray', url = '';
+            const sl = seat.toLowerCase();
+            if (sl.includes('2f') && sl.includes('1gate')) { cls='pink'; url=`onclick="window.open('seatmap_nolabel.html?seat=${block}-${row}-${col}','_blank')"`; }
+            else if (sl.includes('3f') && sl.includes('1gate')) cls='blue';
+            else if (sl.includes('4f') && sl.includes('1gate')) cls='orange';
+            return `<div class="entry ${cls}" ${url}>${name} 님 (${org}, ${title})<br/>좌석: ${seat}<div class="team">초청 담당: ${team} / ${mgr}</div></div>`;
           }
-        }
+        }).filter(Boolean);
 
-        resultEl.innerHTML = matches.length
-          ? matches.join('')
-          : '등록되지 않은 이름 또는 소속입니다.';
-      } catch (error) {
-        console.error(error);
-        resultEl.textContent = '데이터를 불러오는 중 오류가 발생했습니다.';
+        resEl.innerHTML = matches.length ? matches.join('') : '등록되지 않은 이름 또는 소속입니다.';
+      } catch(e) {
+        console.error(e);
+        resEl.textContent = '데이터를 불러오는 중 오류가 발생했습니다.';
       }
     }
   </script>

@@ -2,49 +2,226 @@
 <html lang="ko">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>BIFAN2025 SEAT FINDER</title>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;700&display=swap" rel="stylesheet" />
   <style>
-    body { font-family: Arial, sans-serif; background: #000; color: #fff; padding: 20px; text-align: center; }
-    input, button { padding: 10px; font-size: 1em; margin-top: 10px; width: 80%; max-width: 400px; }
-    .entry { margin: 10px; padding: 12px; border-radius: 8px; background: #333; cursor: pointer; }
-    .entry:hover { background: #444; }
+    body {
+      font-family: 'Noto Sans KR', sans-serif;
+      background: url('https://www.bifan.kr/presskit/2025/10/images/press_10_01.jpg') no-repeat center center fixed;
+      background-size: cover;
+      margin: 0;
+      padding: 0;
+      color: #fff;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+    }
+
+    .overlay {
+      background: rgba(0, 0, 0, 0.7);
+      backdrop-filter: blur(10px);
+      max-width: 700px;
+      width: 90%;
+      padding: 40px 25px;
+      border-radius: 20px;
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+      text-align: center;
+      color: #fff;
+    }
+
+    .logo {
+      max-width: 180px;
+      margin-bottom: 20px;
+    }
+
+    h1 {
+      font-size: 2.2em;
+      margin-bottom: 10px;
+    }
+
+    h1 span {
+      display: block;
+    }
+
+    h3.warning {
+      font-weight: bold;
+      font-size: 0.8em;
+      color: tomato;
+      margin-bottom: 25px;
+    }
+
+    input[type="text"] {
+      width: 100%;
+      padding: 14px 18px;
+      font-size: 1em;
+      border: none;
+      border-radius: 10px;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+      margin-bottom: 15px;
+      box-sizing: border-box;
+    }
+
+    button {
+      padding: 12px 26px;
+      background-color: #436aec;
+      border: none;
+      border-radius: 10px;
+      color: white;
+      font-size: 1em;
+      cursor: pointer;
+      transition: 0.3s ease;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+    }
+
+    button:hover {
+      background-color: #2e4cbf;
+    }
+
+    .result {
+      margin-top: 30px;
+      max-height: 400px;
+      overflow-y: auto;
+    }
+
+    .card {
+      padding: 16px;
+      margin-bottom: 16px;
+      border-radius: 12px;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.15);
+      text-align: left;
+    }
+
+    .card .name {
+      font-weight: 700;
+      font-size: 1.2em;
+      margin-bottom: 6px;
+    }
+
+    .card .name small {
+      font-weight: normal;
+      font-size: 0.9em;
+      opacity: 0.9;
+    }
+
+    .card .info {
+      font-size: 0.95em;
+      margin-bottom: 4px;
+    }
+
+    .card .seat {
+      font-weight: bold;
+      margin-top: 8px;
+      font-size: 1.05em;
+    }
+
+    .meta {
+      font-size: 0.8em;
+      margin-top: 6px;
+      opacity: 0.85;
+    }
+
+    .pink { background-color: #ff7094; color: #fff; }
+    .blue { background-color: #436aec; color: #fff; }
+    .orange { background-color: #fd6b3a; color: #fff; }
+    .gray { background-color: #f2f2f2; color: #000; }
+
+    @media (max-width: 600px) {
+      .overlay {
+        padding: 30px 20px;
+      }
+
+      .logo {
+        max-width: 150px;
+      }
+    }
   </style>
 </head>
 <body>
-  <h1>BIFAN2025 SEAT FINDER</h1>
-  <input type="text" id="query" placeholder="성함 또는 소속 입력" />
-  <br />
-  <button onclick="doSearch()">조회</button>
-  <div id="results"></div>
+  <div class="overlay">
+    <img src="https://www.bifan.kr/web/images/main/main2025_header_logo_w.png" alt="BIFAN Logo" class="logo" />
+    <h1><span>BIFAN2025</span><span>SEAT FINDER</span></h1>
+    <h3 class="warning">* 스태프 사용 용도이므로 외부 공유 금지 바랍니다.</h3>
+    <input type="text" id="nameInput" placeholder="성함 또는 소속을 입력하세요" />
+    <br />
+    <button id="searchBtn">조회</button>
+    <div class="result" id="result"></div>
+  </div>
 
   <script>
-    const sheetUrl = 'https://docs.google.com/.../gviz/tq?tqx=out:json&sheet=개막식'; // 실제 URL 입력
+    const sheetUrl = 'https://docs.google.com/spreadsheets/d/1vJDO2ED45nZtkxJC9ii_hLPHYJhn2IoBQXGDoiKHZA4/gviz/tq?tqx=out:json&sheet=개막식';
 
-    function doSearch() {
-      const q = document.getElementById('query').value.trim();
-      const resEl = document.getElementById('results');
-      resEl.innerHTML = '조회 중...';
-      if (!q) return resEl.textContent = '입력해 주세요.';
-      fetch(sheetUrl).then(r => r.text()).then(txt => {
-        const json = JSON.parse(txt.substr(47).slice(0,-2));
-        const html = json.table.rows.map(r => {
-          const name = r.c[20]?.v, org=r.c[21]?.v||'', title=r.c[22]?.v||'';
-          let zone=r.c[27]?.v||'', block=r.c[28]?.v, row=r.c[29]?.v, col=r.c[30]?.v;
-          if (/\d$/.test(zone)) zone += 'GATE';
-          const seat = block && row && col ? `${block}-${row}-${col}` : '';
-          if ((name && name.includes(q)) || (org && org.includes(q))) {
-            return `<div class="entry" onclick="openMap('${seat}')">${name} 님 — 좌석: ${seat}</div>`;
+    async function lookupSeat() {
+      const input = document.getElementById('nameInput');
+      const resultEl = document.getElementById('result');
+      const keyword = input.value.trim().toLowerCase();
+
+      if (!keyword) {
+        resultEl.textContent = '이름 또는 소속을 입력해 주세요.';
+        return;
+      }
+
+      resultEl.textContent = '조회 중...';
+
+      try {
+        const res = await fetch(sheetUrl, { cache: 'no-store' });
+        const text = await res.text();
+        const json = JSON.parse(text.substring(47).slice(0, -2));
+        const rows = json.table.rows;
+        const matches = [];
+
+        for (const row of rows) {
+          const rawName = row.c[20]?.v || '';
+          const affiliation = row.c[21]?.v || '';
+          const title = row.c[22]?.v || '직함없음';
+          const inviteTeam = row.c[16]?.v || ''; // Q열
+          const inviter = row.c[17]?.v || '';     // R열
+          const zone = row.c[27]?.v || '';
+          const block = row.c[28]?.v || '';
+          const rowNum = row.c[29]?.v || '';
+          const col = row.c[30]?.v || '';
+
+          const nameLower = rawName.toLowerCase();
+          const affiliationLower = affiliation.toLowerCase();
+
+          if (nameLower.includes(keyword) || affiliationLower.includes(keyword)) {
+            const zoneLabel = /\d$/.test(zone) ? zone + 'GATE' : zone;
+            const seat = `${zoneLabel} ${block}-${rowNum}-${col}`;
+            let colorClass = '';
+
+            if (zoneLabel.startsWith('2F 1GATE')) colorClass = 'pink';
+            else if (zoneLabel.startsWith('3F 1')) colorClass = 'blue';
+            else if (zoneLabel.startsWith('4F 1')) colorClass = 'orange';
+            else colorClass = 'gray';
+
+            matches.push(`
+              <div class="card ${colorClass}">
+                <div class="name">${rawName} <small>님</small></div>
+                <div class="info">소속: ${affiliation || '소속없음'}</div>
+                <div class="info">직함: ${title}</div>
+                <div class="seat">좌석: ${seat}</div>
+                ${inviteTeam || inviter ? `<div class="meta">초청 담당: ${inviteTeam} / ${inviter}</div>` : ''}
+              </div>
+            `);
           }
-          return '';
-        }).filter(s=>s).join('');
-        resEl.innerHTML = html || '등록된 정보가 없습니다.';
-      }).catch(e => resEl.textContent = '불러오기 오류');
+        }
+
+        resultEl.innerHTML = matches.length > 0
+          ? matches.join('')
+          : '등록되지 않은 이름 또는 소속입니다.';
+      } catch (error) {
+        console.error(error);
+        resultEl.textContent = '조회 중 오류가 발생했습니다.';
+      }
     }
 
-    function openMap(seatId) {
-      window.open(`full_seatmap.html?seat=${seatId}`, '_blank', 'width=800,height=600');
-    }
+    document.getElementById('searchBtn').addEventListener('click', lookupSeat);
+    document.getElementById('nameInput').addEventListener('keypress', e => {
+      if (e.key === 'Enter') {
+        lookupSeat();
+      }
+    });
   </script>
 </body>
 </html>

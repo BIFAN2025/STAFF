@@ -1553,9 +1553,7 @@
       <div class="seat-cell value">B-5-10</div></div>
   </div>
 
-<script>
-    window.addEventListener('DOMContentLoaded', () => {
-      // 💡 새로운 '시트파인더' 탭의 gid=1882860511 주소 적용
+window.addEventListener('DOMContentLoaded', () => {
       const sheetUrl = 'https://docs.google.com/spreadsheets/d/1vJDO2ED45nZtkxJC9ii_hLPHYJhn2IoBQXGDoiKHZA4/gviz/tq?tqx=out:json&gid=1882860511';
       
       async function lookupSeat() {
@@ -1578,48 +1576,59 @@
           
           rows.forEach(r => {
             if (!r || !r.c) return;
-            
-            // 💡 [값 매핑 수정] '시트파인더' 탭의 A열(0)부터 I열(8)까지 순서대로 가져옵니다.
-            const name = r.c[0]?.v || '';      // A열: 이름
-            const aff = r.c[1]?.v || '';       // B열: 소속
-            const title = r.c[2]?.v || '';     // C열: 직함
-            const zone = r.c[3]?.v || '';      // D열: 구역
-            const block = r.c[4]?.v || '';     // E열: 블럭
-            const rowNum = r.c[5]?.v || '';    // F열: 행
-            const colNum = r.c[6]?.v || '';    // G열: 열
-            const team = r.c[7]?.v || '';      // H열: 팀
-            const manager = r.c[8]?.v || '';   // I열: 담당자
+            const name = r.c[0]?.v || '';
+            const aff = r.c[1]?.v || '';
+            const title = r.c[2]?.v || '';
+            const zone = r.c[3]?.v || '';
+            const block = r.c[4]?.v || '';
+            const rowNum = r.c[5]?.v || '';
+            const colNum = r.c[6]?.v || '';
+            const team = r.c[7]?.v || '';
+            const manager = r.c[8]?.v || '';
             
             if (name.toLowerCase().includes(kw) || aff.toLowerCase().includes(kw)) {
-              let cls = 'card gray';
-              if (String(zone).startsWith('2F')) cls = 'card pink';
+              // 💡 핵심: 검색 결과의 좌석 좌표 (예: A-1-1)를 그대로 생성합니다.
+              const seatId = `${block}-${rowNum}-${colNum}`;
               
-              // 💡 [원래 카드 형식 유지 + 라벨 제거 요청 반영]
-              // 원래 코드가 좌석 위치를 찾을 때 카드의 onclick에서 이 DOM 구조나 데이터를 참조하므로 구조를 유지합니다.
               cards.push(`
-                <div class="${cls}" onclick="showMap('${zone}', '${block}', '${rowNum}', '${colNum}')">
+                <div class="card" onclick="highlightSeat('${zone}', '${seatId}')">
                   <div class="name">${name}</div>
                   <div class="info">${aff} ${title}</div>
-                  <div class="seat">${zone}GATE ${block}-${rowNum}-${colNum}</div>
+                  <div class="seat">${zone}GATE ${seatId}</div>
                   <div class="meta">담당자: ${team} ${manager}</div>
                 </div>
               `);
             }
           });
-          
           rEl.innerHTML = cards.length ? cards.join('') : '등록된 정보가 없습니다.';
-          
         } catch (err) {
           console.error(err);
-          rEl.textContent = '데이터를 불러오는 중 오류가 발생했습니다.';
+          rEl.textContent = '오류 발생.';
         }
       }
+
+      // 💡 [전역 함수] 클릭 시 하단 HTML을 뒤져서 빨간색(highlight)을 칠해줍니다.
+      window.highlightSeat = (zone, seatId) => {
+        // 1. 모든 기존 하이라이트 제거
+        document.querySelectorAll('.seat-cell.highlight').forEach(el => el.classList.remove('highlight'));
+        
+        // 2. 해당 구역(map-2F 등) 노출 (이미 숨겨져 있다면)
+        document.querySelectorAll('.seat-map-wrapper').forEach(el => el.style.display = 'none');
+        const mapEl = document.getElementById(`map-${zone}`);
+        if(mapEl) mapEl.style.display = 'block';
+
+        // 3. 텍스트가 일치하는 셀을 찾아 highlight 클래스 부여
+        const cells = document.querySelectorAll('.seat-cell');
+        cells.forEach(cell => {
+          if (cell.textContent.trim() === seatId) {
+            cell.classList.add('highlight');
+            cell.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          }
+        });
+      };
       
       document.getElementById('searchBtn').addEventListener('click', lookupSeat);
-      document.getElementById('nameInput').addEventListener('keypress', (e) => {
-        if (e.key === 'Enter') lookupSeat();
-      });
+      document.getElementById('nameInput').addEventListener('keypress', (e) => { if (e.key === 'Enter') lookupSeat(); });
     });
-  </script>
 </body>
 </html>

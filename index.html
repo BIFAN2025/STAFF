@@ -1555,6 +1555,7 @@
 
 <script>
     window.addEventListener('DOMContentLoaded', () => {
+      // 💡 새로운 '시트파인더' 탭의 gid=1882860511 주소 적용
       const sheetUrl = 'https://docs.google.com/spreadsheets/d/1vJDO2ED45nZtkxJC9ii_hLPHYJhn2IoBQXGDoiKHZA4/gviz/tq?tqx=out:json&gid=1882860511';
       
       async function lookupSeat() {
@@ -1578,7 +1579,7 @@
           rows.forEach(r => {
             if (!r || !r.c) return;
             
-            // 데이터 안전하게 매핑 (A~I열)
+            // 💡 [값 매핑 수정] '시트파인더' 탭의 A열(0)부터 I열(8)까지 순서대로 가져옵니다.
             const name = r.c[0]?.v || '';      // A열: 이름
             const aff = r.c[1]?.v || '';       // B열: 소속
             const title = r.c[2]?.v || '';     // C열: 직함
@@ -1593,9 +1594,10 @@
               let cls = 'card gray';
               if (String(zone).startsWith('2F')) cls = 'card pink';
               
-              // 💡 중요: 카드 엘리먼트에 타겟 좌석 정보(구역, 블럭, 행, 열)를 속성으로 다 심어둡니다.
+              // 💡 [원래 카드 형식 유지 + 라벨 제거 요청 반영]
+              // 원래 코드가 좌석 위치를 찾을 때 카드의 onclick에서 이 DOM 구조나 데이터를 참조하므로 구조를 유지합니다.
               cards.push(`
-                <div class="${cls}" data-zone="${zone}" data-block="${block}" data-row="${rowNum}" data-col="${colNum}">
+                <div class="${cls}" onclick="showMap('${zone}', '${block}', '${rowNum}', '${colNum}')">
                   <div class="name">${name}</div>
                   <div class="info">${aff} ${title}</div>
                   <div class="seat">${zone}GATE ${block}-${rowNum}-${colNum}</div>
@@ -1606,51 +1608,6 @@
           });
           
           rEl.innerHTML = cards.length ? cards.join('') : '등록된 정보가 없습니다.';
-          
-          // 💡 [클릭 이벤트 맵 복구 핵심 로직]
-          document.querySelectorAll('.card').forEach(card => {
-            card.onclick = () => {
-              const z = card.getAttribute('data-zone');
-              const b = card.getAttribute('data-block');
-              const r = card.getAttribute('data-row');
-              const c = card.getAttribute('data-col');
-              
-              // 1. 기존에 정의된 showMap 함수를 호출하여 해당 구역/블록의 좌석 진열판을 먼저 깔아줍니다.
-              if (typeof showMap === 'function') {
-                showMap(z, b);
-                
-                // 2. 좌석판이 깔린 직후, 하단 렌더링된 셀들 중에서 사용자가 클릭한 행(r)과 열(c)이 일치하는 셀을 정확히 찾아냅니다.
-                setTimeout(() => {
-                  // 기존 좌석 그리드 내부에서 'data-row'와 'data-col' 혹은 셀 내부 텍스트를 기준으로 매칭합니다.
-                  const cells = document.querySelectorAll('.seat-cell');
-                  let found = false;
-                  
-                  cells.forEach(cell => {
-                    // 셀의 data 속성이나 텍스트가 일치하는지 검사 (기존 렌더링 방식에 맞춤)
-                    if (cell.textContent.trim() === String(c) && cell.parentElement && cell.parentNode) {
-                      // 기존 HTML의 구조적 특징이나 클래스를 활용해 하이라이트를 꽂아줍니다.
-                      cell.classList.add('highlight');
-                      cell.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                      found = true;
-                    }
-                  });
-                  
-                  // 만약 단순 텍스트 매칭으로 안 찾아질 경우를 대비한 2차 매칭 (행/열 매핑 구조 대응)
-                  if (!found) {
-                    // 현재 활성화된 좌석 컨테이너 내에서 순서대로 매칭을 시도합니다.
-                    const rowsEls = document.querySelectorAll('.seat-map-wrapper .seat-row');
-                    if(rowsEls[r - 1]) {
-                      const targetCell = rowsEls[r - 1].querySelector(`.seat-cell:nth-child(${c})`);
-                      if(targetCell) {
-                        targetCell.classList.add('highlight');
-                        targetCell.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                      }
-                    }
-                  }
-                }, 100); // 좌석도가 브라우저에 그려지는 최소한의 유예시간 부여
-              }
-            };
-          });
           
         } catch (err) {
           console.error(err);

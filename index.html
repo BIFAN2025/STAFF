@@ -1555,8 +1555,6 @@
 
 <script>
     window.addEventListener('DOMContentLoaded', () => {
-      // 기존 이벤트 리스너 및 초기화 코드가 이 부분에 위치합니다.
-      
       const sheetUrl = 'https://docs.google.com/spreadsheets/d/1vJDO2ED45nZtkxJC9ii_hLPHYJhn2IoBQXGDoiKHZA4/gviz/tq?tqx=out:json&gid=1882860511';
       
       async function lookupSeat() {
@@ -1573,34 +1571,31 @@
         try {
           const res = await fetch(sheetUrl, { cache: 'no-store' });
           const txt = await res.text();
-          // Google Visualization API의 JSON 응답을 파싱합니다.
           const json = JSON.parse(txt.substring(47).slice(0, -2));
           const rows = json.table.rows;
           const cards = [];
           
           rows.forEach(r => {
-            // 각 열의 값을 안전하게 추출
+            if (!r || !r.c) return;
+            
+            // 데이터 안전하게 매핑 (A~I열)
             const name = r.c[0]?.v || '';      // A열: 이름
             const aff = r.c[1]?.v || '';       // B열: 소속
             const title = r.c[2]?.v || '';     // C열: 직함
-            
             const zone = r.c[3]?.v || '';      // D열: 구역
             const block = r.c[4]?.v || '';     // E열: 블럭
             const rowNum = r.c[5]?.v || '';    // F열: 행
             const colNum = r.c[6]?.v || '';    // G열: 열
-            
             const team = r.c[7]?.v || '';      // H열: 팀
             const manager = r.c[8]?.v || '';   // I열: 담당자
             
-            // 이름이나 소속에 검색어가 포함되어 있는지 확인
             if (name.toLowerCase().includes(kw) || aff.toLowerCase().includes(kw)) {
-              // 구역별 카드 색상 클래스 분기 지정 (기존 로직 유지)
               let cls = 'card gray';
               if (String(zone).startsWith('2F')) cls = 'card pink';
               
-              // 각 카드에 구역(zone)과 블럭(block) 데이터를 속성으로 저장해 둡니다.
+              // 💡 중요: 카드 엘리먼트에 타겟 좌석 정보(구역, 블럭, 행, 열)를 속성으로 다 심어둡니다.
               cards.push(`
-                <div class="${cls}" data-zone="${zone}" data-block="${block}">
+                <div class="${cls}" data-zone="${zone}" data-block="${block}" data-row="${rowNum}" data-col="${colNum}">
                   <div class="name">${name}</div>
                   <div class="info">${aff} ${title}</div>
                   <div class="seat">${zone}GATE ${block}-${rowNum}-${colNum}</div>
@@ -1612,14 +1607,47 @@
           
           rEl.innerHTML = cards.length ? cards.join('') : '등록된 정보가 없습니다.';
           
-          // 💡 [수정 완료] 카드 터치(클릭) 시 기존 지도 팝업 기능(showMap)이 실행되도록 이벤트를 바인딩합니다.
+          // 💡 [클릭 이벤트 맵 복구 핵심 로직]
           document.querySelectorAll('.card').forEach(card => {
             card.onclick = () => {
               const z = card.getAttribute('data-zone');
               const b = card.getAttribute('data-block');
-              // 기존 index.html 하단에 정의되어 있는 showMap 함수를 호출하여 팝업을 띄웁니다.
+              const r = card.getAttribute('data-row');
+              const c = card.getAttribute('data-col');
+              
+              // 1. 기존에 정의된 showMap 함수를 호출하여 해당 구역/블록의 좌석 진열판을 먼저 깔아줍니다.
               if (typeof showMap === 'function') {
                 showMap(z, b);
+                
+                // 2. 좌석판이 깔린 직후, 하단 렌더링된 셀들 중에서 사용자가 클릭한 행(r)과 열(c)이 일치하는 셀을 정확히 찾아냅니다.
+                setTimeout(() => {
+                  // 기존 좌석 그리드 내부에서 'data-row'와 'data-col' 혹은 셀 내부 텍스트를 기준으로 매칭합니다.
+                  const cells = document.querySelectorAll('.seat-cell');
+                  let found = false;
+                  
+                  cells.forEach(cell => {
+                    // 셀의 data 속성이나 텍스트가 일치하는지 검사 (기존 렌더링 방식에 맞춤)
+                    if (cell.textContent.trim() === String(c) && cell.parentElement && cell.parentNode) {
+                      // 기존 HTML의 구조적 특징이나 클래스를 활용해 하이라이트를 꽂아줍니다.
+                      cell.classList.add('highlight');
+                      cell.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                      found = true;
+                    }
+                  });
+                  
+                  // 만약 단순 텍스트 매칭으로 안 찾아질 경우를 대비한 2차 매칭 (행/열 매핑 구조 대응)
+                  if (!found) {
+                    // 현재 활성화된 좌석 컨테이너 내에서 순서대로 매칭을 시도합니다.
+                    const rowsEls = document.querySelectorAll('.seat-map-wrapper .seat-row');
+                    if(rowsEls[r - 1]) {
+                      const targetCell = rowsEls[r - 1].querySelector(`.seat-cell:nth-child(${c})`);
+                      if(targetCell) {
+                        targetCell.classList.add('highlight');
+                        targetCell.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                      }
+                    }
+                  }
+                }, 100); // 좌석도가 브라우저에 그려지는 최소한의 유예시간 부여
               }
             };
           });
@@ -1630,7 +1658,6 @@
         }
       }
       
-      // 검색 버튼 및 엔터키 이벤트 바인딩
       document.getElementById('searchBtn').addEventListener('click', lookupSeat);
       document.getElementById('nameInput').addEventListener('keypress', (e) => {
         if (e.key === 'Enter') lookupSeat();

@@ -1601,8 +1601,8 @@ window.addEventListener('DOMContentLoaded', () => {
 
     try {
 
-      const sheetUrl =
-        'https://docs.google.com/spreadsheets/d/1vJDO2ED45nZtkxJC9ii_hLPHYJhn2IoBQXGDoiKHZA4/gviz/tq?tqx=out:json&gid=1882860511';
+const sheetUrl =
+'https://docs.google.com/spreadsheets/d/1vJDO2ED45nZtkxJC9ii_hLPHYJhn2IoBQXGDoiKHZA4/gviz/tq?tqx=out:json&gid=1296628147';
 
       const res = await fetch(sheetUrl, {
         cache: 'no-store'
@@ -1622,19 +1622,39 @@ window.addEventListener('DOMContentLoaded', () => {
 
         if (!r || !r.c) return;
 
-        const name = r.c[0]?.v || '';
-        const aff = r.c[1]?.v || '';
-        const title = r.c[2]?.v || '';
-        const zone = r.c[3]?.v || '';
-        const block = r.c[4]?.v || '';
-        const rowNum = r.c[5]?.v || '';
-        const colNum = r.c[6]?.v || '';
-        const team = r.c[7]?.v || '';
-        const manager = r.c[8]?.v || '';
+        // 담당자
+        const team = r.c[13]?.v || '';      // N
+        const manager = r.c[14]?.v || '';   // O
 
+        // 이름
+        const nameKo = r.c[17]?.v || '';    // R
+        const nameEn = r.c[18]?.v || '';    // S
+
+        // 소속
+        const affKo = r.c[19]?.v || '';     // T
+        const affEn = r.c[20]?.v || '';     // U
+
+        // 직함
+        const titleKo = r.c[21]?.v || '';   // V
+        const titleEn = r.c[22]?.v || '';   // W
+
+        // 좌석
+        const zone = r.c[27]?.v || '';      // AB
+        const block = r.c[28]?.v || '';     // AC
+        const rowNum = r.c[29]?.v || '';    // AD
+        const colNum = r.c[30]?.v || '';    // AE
+
+        const infoKo = [affKo, titleKo].filter(Boolean).join(' ');
+        const infoEn = [affEn, titleEn].filter(Boolean).join(' ');
+
+        // 검색 (국문/영문 모두)
         if (
-          name.toLowerCase().includes(kw) ||
-          aff.toLowerCase().includes(kw)
+          nameKo.toLowerCase().includes(kw) ||
+          nameEn.toLowerCase().includes(kw) ||
+          affKo.toLowerCase().includes(kw) ||
+          affEn.toLowerCase().includes(kw) ||
+          titleKo.toLowerCase().includes(kw) ||
+          titleEn.toLowerCase().includes(kw)
         ) {
 
           let cls = 'card gray';
@@ -1651,11 +1671,24 @@ window.addEventListener('DOMContentLoaded', () => {
             <div class="${cls}"
                  onclick="showMap('${zone}','${block}','${rowNum}','${colNum}')">
 
-              <div class="name">${name}</div>
+<div class="name">
+  ${nameKo}
+</div>
 
-              <div class="info">
-                ${aff} ${title}
-              </div>
+${nameEn ? `
+<div style="font-size:18px;font-weight:bold;color:#fff;margin-top:2px;">
+  ${nameEn}
+</div>` : ''}
+
+${infoKo ? `
+<div class="info">
+  ${infoKo}
+</div>` : ''}
+
+${infoEn ? `
+<div style="color:#fff;margin-top:2px;">
+  ${infoEn}
+</div>` : ''}
 
               <div class="seat">
                 ${zone} GATE ${block}-${rowNum}-${colNum}
